@@ -6,6 +6,7 @@ import random
 import time
 import asyncio
 from datetime import datetime 
+from user_profiles import User 
 
 class Bot(commands.Bot):
 
@@ -27,12 +28,20 @@ class Bot(commands.Bot):
             return
         if(self.current_question != None):
             if((ctx.content).lower() == self.current_question[2].lower()):
-                await ctx.channel.send(f"@{ctx.author.name} got it correct, with the answer being {self.current_question[2]}")
+                await ctx.channel.send(f"@{ctx.author.name} got it correct for 25 gems, with the answer being {self.current_question[2]}")
+                currentUser = User(ctx.author.name.lower()) 
+                currentUser.addPoints(25)
+                currentUser.save_user_data()
                 self.trivia_round = False
+
         await self.handle_commands(ctx)
 
         
 
+    @commands.command(name='gems')
+    async def gems(self, ctx):
+        currentUser = User(ctx.author.name.lower())
+        await ctx.send(f"@{ctx.author.name} has {currentUser.returnPoints()} gems")
 
     @commands.command(name='weebs')
     async def weebs(self, ctx):
@@ -43,7 +52,9 @@ class Bot(commands.Bot):
         random.seed()
         question_masterlist, question_genres = generate_questions()
         game = True
+        await ctx.send("Trivia will start in 10 seconds!")
         while game:
+            await asyncio.sleep(10)
             self.trivia_round = True    
             hint = 0
             self.current_question = question_masterlist[random.randrange(0, len(question_masterlist), 1)]
