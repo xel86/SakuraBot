@@ -7,11 +7,13 @@ import time
 import asyncio
 from datetime import datetime 
 from user_profiles import User 
+from emoteslist import global_emotes
 
 class Bot(commands.Bot):
 
     current_question = None
     trivia_round = None
+    emote_parameter = None
     def __init__(self):
         super().__init__(irc_token=os.environ['TMI_TOKEN'], client_id=os.environ['CLIENT_ID'], nick=os.environ['BOT_NICK'], prefix=os.environ['BOT_PREFIX'], initial_channels=[os.environ['CHANNEL']])
 
@@ -33,10 +35,26 @@ class Bot(commands.Bot):
                 currentUser.addPoints(25)
                 currentUser.save_user_data()
                 self.trivia_round = False
+        if(any(emote in ctx.content for emote in global_emotes)):
+            for find in global_emotes:
+                if(find in ctx.content):
+                    currentUser = User(ctx.author.name.lower())
+                    currentUser.logEmote(find)                    
+                    currentUser.save_user_data()
+                    break
+        if((ctx.content).startswith("$emotecount")):
+            self.emote_parameter = ctx.content[12:] 
 
         await self.handle_commands(ctx)
 
         
+    @commands.command(name='emotecount')
+    async def emotecount(self, ctx):
+        try:
+            currentUser = User(ctx.author.name.lower())
+            await ctx.send(f"@{ctx.author.name} has used {self.emote_parameter} {currentUser.returnEmoteCount(self.emote_parameter) -1} times since my inception")
+        except:
+            await ctx.send("Sorry, I either don't know that emote or your input is wrong, do $emotecount emotename")
 
     @commands.command(name='gems')
     async def gems(self, ctx):
@@ -49,16 +67,17 @@ class Bot(commands.Bot):
 
     @commands.command(name='trivia')
     async def trivia(self, ctx):
+        question_size = 5
+        question_number = 1
         random.seed()
         question_masterlist, question_genres = generate_questions()
-        game = True
         await ctx.send("Trivia will start in 10 seconds!")
-        while game:
+        while question_size >= question_number:
             await asyncio.sleep(10)
             self.trivia_round = True    
             hint = 0
             self.current_question = question_masterlist[random.randrange(0, len(question_masterlist), 1)]
-            await ctx.send(f"Topic: {self.current_question[0]}. " + f"{self.current_question[1]}")
+            await ctx.send(f"[{question_number}/{question_size}] {self.current_question[0]}: " + f"{self.current_question[1]}")
             now = datetime.now()
             while self.trivia_round:
                 await asyncio.sleep(0.1)
@@ -69,6 +88,8 @@ class Bot(commands.Bot):
                     await ctx.send(f"Times up! The correct answer is {self.current_question[2]}")
                     self.trivia_round = False
             question_masterlist.remove(self.current_question)
+            question_number+=1
+        self.current_question = None
                
 bot = Bot()
 bot.run()
