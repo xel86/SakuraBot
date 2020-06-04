@@ -6,14 +6,16 @@ import random
 import time
 import asyncio
 from datetime import datetime 
-from user_profiles import User 
+from user_profiles import User, pointLeaderboard 
 from emoteslist import global_emotes
+import sys
 
 class Bot(commands.Bot):
 
     current_question = None
     trivia_round = None
     emote_parameter = None
+    current_trivia_game = False
     def __init__(self):
         super().__init__(irc_token=os.environ['TMI_TOKEN'], client_id=os.environ['CLIENT_ID'], nick=os.environ['BOT_NICK'], prefix=os.environ['BOT_PREFIX'], initial_channels=[os.environ['CHANNEL']])
 
@@ -42,17 +44,55 @@ class Bot(commands.Bot):
                     currentUser.logEmote(find)                    
                     currentUser.save_user_data()
                     break
-        if((ctx.content).startswith("$emotecount")):
-            self.emote_parameter = ctx.content[12:] 
 
         await self.handle_commands(ctx)
 
+    @commands.command(name='gamble')
+    async def gamble(self, ctx, amount):
+        currentUser = User(ctx.author.name.lower())
+        bet = None
+        if(amount == "all"):
+            bet = currentUser.returnPoints()
+        elif(amount == "half"):
+            bet = currentUser.returnPoints() / 2
+        else:
+            try:
+                bet = int(amount)
+            except:
+                await ctx.send(f"@{ctx.author.name}, improper bet type. Please only use whole numbers, \"all\", or \"half\"")
+                return
+        random.seed()
+        gamba = random.randint(0,1) 
+        if(gamba == 1):
+            currentUser.addPoints(bet)
+            await ctx.send(f"Congrats @{ctx.author.name}, you have won {bet} gems, and now have a total of {currentUser.returnPoints()} gems")
+        if(gamba == 0):
+            currentUser.deductPoints(bet) 
+            await ctx.send(f"Unlucky @{ctx.author.name}, you have lost {bet} gems, and now have a total of {currentUser.returnPoints()} gems")
+        currentUser.save_user_data()
+
+    @commands.command(name='shutdown')
+    async def shutdown(self, ctx):
+        if((ctx.author.name.lower() == "1xelerate") or (ctx.author.is_mod)):
+            await ctx.send("guess ill leave Sadge")
+            sys.exit()
+        else:
+            await ctx.send(f"@{ctx.author.name} does not have permission to control me LULW")
+    
+    @commands.command(name='favorite')
+    async def favorite(self, ctx):
+        currentUser = User(ctx.author.name.lower())
+        await ctx.send(currentUser.favoriteEmote())
+
+    @commands.command(name='leaderboard')
+    async def leaderboard(self, ctx):
+        await ctx.send(pointLeaderboard())
         
     @commands.command(name='emotecount')
-    async def emotecount(self, ctx):
+    async def emotecount(self, ctx, emote):
         try:
             currentUser = User(ctx.author.name.lower())
-            await ctx.send(f"@{ctx.author.name} has used {self.emote_parameter} {currentUser.returnEmoteCount(self.emote_parameter) -1} times since my inception")
+            await ctx.send(f"@{ctx.author.name} has used {emote} {currentUser.returnEmoteCount(emote) -1} times since my inception")
         except:
             await ctx.send("Sorry, I either don't know that emote or your input is wrong, do $emotecount emotename")
 
@@ -63,33 +103,36 @@ class Bot(commands.Bot):
 
     @commands.command(name='weebs')
     async def weebs(self, ctx):
-        await ctx.send('ANTI WEEB SPAM NaM')
+        await ctx.send('ANTI WEEB SPAM NaM ANTI WEEB SPAM NaM ANTI WEEB SPAM NaM ANTI WEEB SPAM NaM ANTI WEEB SPAM NaM ANTI WEEB SPAM NaM ANTI WEEB SPAM NaM ANTI WEEB SPAM NaM ANTI WEEB SPAM NaM ANTI WEEB SPAM NaM ANTI WEEB SPAM NaM ANTI WEEB SPAM NaM ')
 
     @commands.command(name='trivia')
     async def trivia(self, ctx):
-        question_size = 5
-        question_number = 1
-        random.seed()
-        question_masterlist, question_genres = generate_questions()
-        await ctx.send("Trivia will start in 10 seconds!")
-        while question_size >= question_number:
-            await asyncio.sleep(10)
-            self.trivia_round = True    
-            hint = 0
-            self.current_question = question_masterlist[random.randrange(0, len(question_masterlist), 1)]
-            await ctx.send(f"[{question_number}/{question_size}] {self.current_question[0]}: " + f"{self.current_question[1]}")
-            now = datetime.now()
-            while self.trivia_round:
-                await asyncio.sleep(0.1)
-                if((datetime.timestamp(datetime.now()) - datetime.timestamp(now)) >= 20 and hint == 0):
-                    await ctx.send(f"HINT: The answer contains {len(self.current_question[2])} characters")
-                    hint = 1
-                elif((datetime.timestamp(datetime.now()) - datetime.timestamp(now)) >= 40 and hint == 1):
-                    await ctx.send(f"Times up! The correct answer is {self.current_question[2]}")
-                    self.trivia_round = False
-            question_masterlist.remove(self.current_question)
-            question_number+=1
-        self.current_question = None
+        if(not self.current_trivia_game):
+            self.current_trivia_game = True
+            question_size = 5
+            question_number = 1
+            random.seed()
+            question_masterlist, question_genres = generate_questions()
+            await ctx.send("Trivia will start in 10 seconds!")
+            while question_size >= question_number:
+                await asyncio.sleep(10)
+                self.trivia_round = True    
+                hint = 0
+                self.current_question = question_masterlist[random.randrange(0, len(question_masterlist), 1)]
+                await ctx.send(f"[{question_number}/{question_size}] {self.current_question[0]}: " + f"{self.current_question[1]}")
+                now = datetime.now()
+                while self.trivia_round:
+                    await asyncio.sleep(0.1)
+                    if((datetime.timestamp(datetime.now()) - datetime.timestamp(now)) >= 20 and hint == 0):
+                        await ctx.send(f"HINT: The answer contains {len(self.current_question[2])} characters")
+                        hint = 1
+                    elif((datetime.timestamp(datetime.now()) - datetime.timestamp(now)) >= 40 and hint == 1):
+                        await ctx.send(f"Times up! The correct answer is {self.current_question[2]}")
+                        self.trivia_round = False
+                question_masterlist.remove(self.current_question)
+                question_number+=1
+            self.current_question = None
+            self.current_trivia_game = False
                
 bot = Bot()
 bot.run()
