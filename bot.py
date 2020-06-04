@@ -47,6 +47,29 @@ class Bot(commands.Bot):
 
         await self.handle_commands(ctx)
 
+    @commands.command(name='sendgems')
+    async def sendgems(self, ctx, amount, otheruser):
+        num = None
+        insuredname = None
+        currentUser = User(ctx.author.name.lower())
+        try:
+            num = int(amount)
+            if("@" in otheruser):
+                insuredname = otheruser[1:]
+            else:
+                insuredname = otheruser
+            str(otheruser)
+        except:
+            await ctx.send("Please insert in format $sendgems amount name with whole numbers") 
+            return
+        try:
+            currentUser.sendPoints(num, insuredname)
+        except:
+            await ctx.send("I don't know that user :(, maybe they haven't typed in this chat yet")
+            return
+        await ctx.send(f"@{ctx.author.name} has sent {num} gems to @{insuredname}")
+        currentUser.save_user_data()
+
     @commands.command(name='gamble')
     async def gamble(self, ctx, amount):
         currentUser = User(ctx.author.name.lower())
@@ -97,9 +120,17 @@ class Bot(commands.Bot):
             await ctx.send("Sorry, I either don't know that emote or your input is wrong, do $emotecount emotename")
 
     @commands.command(name='gems')
-    async def gems(self, ctx):
-        currentUser = User(ctx.author.name.lower())
-        await ctx.send(f"@{ctx.author.name} has {currentUser.returnPoints()} gems")
+    async def gems(self, ctx, optional_user=None):
+        currentUser = User(ctx.author.name.lower()) 
+        if(optional_user != None):
+            if("@" in optional_user):
+                optional_user = optional_user[1:]
+            try:
+                currentUser = User(optional_user.lower())
+            except:
+                await ctx.send("I don't know that user :(") 
+                return
+        await ctx.send(f"@{currentUser.username} has {currentUser.returnPoints()} gems")
 
     @commands.command(name='weebs')
     async def weebs(self, ctx):

@@ -43,6 +43,10 @@ class User():
     def deductPoints(self, amount):
         self.points -= amount
 
+    def sendPoints(self, amount, otheruser):
+        self.points -= amount
+        self.user_master[otheruser]['points'] += amount
+
 
 def pointLeaderboard():
     f = open('userdata_master.json')
