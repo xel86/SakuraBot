@@ -13,7 +13,8 @@ class User():
             self.user_master[self.username] = {'points': 0, 'emotes': {}}
             self.points = 0
         else:
-            self.points = self.user_master[self.username]['points']
+            if(self.username != "$CHAT_GENERAL"):
+                self.points = self.user_master[self.username]['points']
     
     def addPoints(self, amount):
         self.points += amount
@@ -21,12 +22,12 @@ class User():
     def returnPoints(self):
         return self.points
 
-    def logEmote(self, emote):
+    def logEmote(self, emote, amount):
         if(not 'emotes' in self.user_master[self.username]):
             self.user_master[self.username].update({'emotes': {}})
         if(not emote in self.user_master[self.username]['emotes']):
             self.user_master[self.username]['emotes'].update({emote : 0}) 
-        self.user_master[self.username]['emotes'][emote] += 1
+        self.user_master[self.username]['emotes'][emote] += amount 
 
     def returnEmoteCount(self, emote):
         return self.user_master[self.username]['emotes'][emote]
@@ -58,3 +59,24 @@ def pointLeaderboard():
        leaderboard += (f"(#{count+1}) @{user[0]} {user[1]['points']} gems, ") 
     return leaderboard
 
+def syncGlobalChatData():
+    f = open('userdata_master.json')
+    user_master = json.load(f)
+    f.close()
+    if(not "$CHAT_GENERAL" in user_master):
+        user_master.update({'$CHAT_GENERAL' : {}})
+        user_master['$CHAT_GENERAL'].update({'emotes': {}})
+    for user in user_master.items():
+        for emote in user[1]['emotes']:
+            user_master['$CHAT_GENERAL']['emotes'][emote] = 0
+    for user in user_master.items():
+        if(user[0] != "$CHAT_GENERAL"):
+            for emote in user[1]['emotes']:
+                if(not emote in user_master['$CHAT_GENERAL']['emotes']):
+                    user_master['$CHAT_GENERAL']['emotes'].update({emote : 0})
+                user_master['$CHAT_GENERAL']['emotes'][emote] += user[1]['emotes'][emote] 
+        
+    with open('userdata_master.json', 'w') as f:
+        json.dump(user_master, f)
+
+syncGlobalChatData()

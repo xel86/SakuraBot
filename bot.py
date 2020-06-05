@@ -6,9 +6,10 @@ import random
 import time
 import asyncio
 from datetime import datetime 
-from user_profiles import User, pointLeaderboard 
+from user_profiles import User, pointLeaderboard, syncGlobalChatData 
 from emoteslist import global_emotes
 import sys
+import re
 
 class Bot(commands.Bot):
 
@@ -27,25 +28,36 @@ class Bot(commands.Bot):
 
     async def event_message(self, ctx):
         'Runs every time a message is sent in chat.'
-
         if ctx.author.name.lower() == os.environ['BOT_NICK'].lower(): #ignores bot & streamer
             return
-        if(self.current_question != None):
+        if(self.current_question != None and self.trivia_round == True):
             if((ctx.content).lower() == self.current_question[2].lower()):
                 await ctx.channel.send(f"@{ctx.author.name} got it correct for 25 gems, with the answer being {self.current_question[2]}")
                 currentUser = User(ctx.author.name.lower()) 
                 currentUser.addPoints(25)
                 currentUser.save_user_data()
                 self.trivia_round = False
-        if(any(emote in ctx.content for emote in global_emotes)):
+        if(any((1 for _ in re.finditer(r'\b%s\b' % re.escape(emote), ctx.content)) for emote in global_emotes)):
             for find in global_emotes:
                 if(find in ctx.content):
+                    times_in_message = (ctx.content).count(find)
                     currentUser = User(ctx.author.name.lower())
-                    currentUser.logEmote(find)                    
+                    currentUser.logEmote(find,times_in_message)                    
                     currentUser.save_user_data()
                     break
 
         await self.handle_commands(ctx)
+
+    @commands.command(name='ecount')
+    async def ecount(self, ctx, emote):
+        syncGlobalChatData()
+        currentUser = User("$CHAT_GENERAL")
+        try:
+            await ctx.send(f"{emote} has been used {currentUser.returnEmoteCount(emote)-1} in chat!")
+        except:
+            await ctx.send("I either don't know that emote or the input is wrong")
+            return
+
 
     @commands.command(name='sendgems')
     async def sendgems(self, ctx, amount, otheruser):
@@ -103,8 +115,20 @@ class Bot(commands.Bot):
             await ctx.send(f"@{ctx.author.name} does not have permission to control me LULW")
     
     @commands.command(name='favorite')
-    async def favorite(self, ctx):
-        currentUser = User(ctx.author.name.lower())
+    async def favorite(self, ctx, optional_user=None):
+        currentUser = User(ctx.author.name.lower()) 
+        if(optional_user != None):
+            if("@" in optional_user):
+                optional_user = optional_user[1:]
+            try:
+                if(optional_user == "chat"):
+                    syncGlobalChatData()
+                    currentUser = User("$CHAT_GENERAL")
+                else:
+                    currentUser = User(optional_user.lower())
+            except:
+                await ctx.send("I don't know that user :(") 
+                return
         await ctx.send(currentUser.favoriteEmote())
 
     @commands.command(name='leaderboard')
