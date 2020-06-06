@@ -1,5 +1,6 @@
 #Trivia Questions for $trivia game sorted by Genre
 #questions are [genre, question, answer]
+#question_master.append(["", "", ""])
 
 def generate_questions():
 
@@ -14,7 +15,29 @@ def generate_questions():
     question_master.append(["Twitch", "What year was the Reckful & Forsen Spain Trip?", "2017"])
     question_master.append(["History", "How many US Presidents have been assassinated during office?", "4"])
     question_master.append(["Guess Who", "Final Offer, thats the best I can do", "Rick Harrison"])
+    question_master.append(["Twitch", "What game did Clint Stevens speedrun to get 2nd place?", "Ocarina of Time"])
+    question_master.append(["Geography", "Estonia, Latvia, and ....", "Lithuania"])
+    question_master.append(["Games", "What card in Hearthstone has this effect: Gain +2/+2 for each other card you've played this turn?", "Edwin VanCleef"])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
+    #question_master.append(["", "", ""])
 
+    
     questions_genre = [geography_questions, game_questions, twitch_questions]
     for question in question_master:
         if(question[0].lower() == "geography"):

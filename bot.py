@@ -17,7 +17,7 @@ class Bot(commands.Bot):
     trivia_round = None
     emote_parameter = None
     current_trivia_game = False
-    currentUser = User("USER_INTERACTION_PLACER")
+    currentUser = User("USER_INTERACTION_PLACER") #only "user" object, interacts with all user data by changing username of this single object
     def __init__(self):
         super().__init__(irc_token=os.environ['TMI_TOKEN'], client_id=os.environ['CLIENT_ID'], nick=os.environ['BOT_NICK'], prefix=os.environ['BOT_PREFIX'], initial_channels=[os.environ['CHANNEL']])
         self.currentUser = User("USER_INTERACTION_PLACER")
@@ -27,6 +27,9 @@ class Bot(commands.Bot):
         print(f"{os.environ['BOT_NICK']} is online!")
         ws = self._ws #needed to send messages within event_ready
         await ws.send_privmsg(os.environ['CHANNEL'], f"/me has landed!")
+        while(True):
+            await asyncio.sleep(15)
+            self.currentUser.save_user_data()
 
     async def event_message(self, ctx):
         'Runs every time a message is sent in chat.'
@@ -35,9 +38,9 @@ class Bot(commands.Bot):
         if(self.current_question != None and self.trivia_round == True):
             if((ctx.content).lower() == self.current_question[2].lower()):
                 await ctx.channel.send(f"@{ctx.author.name} got it correct for 25 gems, with the answer being {self.current_question[2]}")
-                currentUser = User(ctx.author.name.lower()) 
-                currentUser.addPoints(25)
-                currentUser.save_user_data()
+                self.currentUser.changeUser(ctx.author.name.lower()) 
+                self.currentUser.addPoints(25)
+                self.currentUser.save_user_data()
                 self.trivia_round = False
 
         emote_gen = (emote for emote in global_emotes if emote in (ctx.content).split())
@@ -47,16 +50,15 @@ class Bot(commands.Bot):
         await self.handle_commands(ctx)
 
         if(ctx.content == "$save_data"):
-            print("saved")  
             self.currentUser.save_user_data()
 
 
     @commands.command(name='ecount')
     async def ecount(self, ctx, emote):
         syncGlobalChatData()
-        currentUser = User("$CHAT_GENERAL")
+        self.currentUser.changeUser("$CHAT_GENERAL")
         try:
-            await ctx.send(f"{emote} has been used {currentUser.returnEmoteCount(emote)-1} in chat!")
+            await ctx.send(f"{emote} has been used {self.currentUser.returnEmoteCount(emote)-1} in chat!")
         except:
             await ctx.send("I either don't know that emote or the input is wrong")
             return
@@ -66,7 +68,7 @@ class Bot(commands.Bot):
     async def sendgems(self, ctx, amount, otheruser):
         num = None
         insuredname = None
-        currentUser = User(ctx.author.name.lower())
+        self.currentUser.changeUser(ctx.author.name.lower())
         try:
             num = int(amount)
             if("@" in otheruser):
@@ -78,21 +80,21 @@ class Bot(commands.Bot):
             await ctx.send("Please insert in format $sendgems amount name with whole numbers") 
             return
         try:
-            currentUser.sendPoints(num, insuredname)
+            self.currentUser.sendPoints(num, insuredname)
         except:
             await ctx.send("I don't know that user :(, maybe they haven't typed in this chat yet")
             return
         await ctx.send(f"@{ctx.author.name} has sent {num} gems to @{insuredname}")
-        currentUser.save_user_data()
+        self.currentUser.save_user_data()
 
     @commands.command(name='gamble')
     async def gamble(self, ctx, amount):
-        currentUser = User(ctx.author.name.lower())
+        self.currentUser.changeUser(ctx.author.name.lower())
         bet = None
         if(amount == "all"):
-            bet = currentUser.returnPoints()
+            bet = self.currentUser.returnPoints()
         elif(amount == "half"):
-            bet = currentUser.returnPoints() / 2
+            bet = self.currentUser.returnPoints() / 2
         else:
             try:
                 bet = int(amount)
@@ -102,37 +104,38 @@ class Bot(commands.Bot):
         random.seed()
         gamba = random.randint(0,1) 
         if(gamba == 1):
-            currentUser.addPoints(bet)
-            await ctx.send(f"Congrats @{ctx.author.name}, you have won {bet} gems, and now have a total of {currentUser.returnPoints()} gems")
+            self.currentUser.addPoints(bet)
+            await ctx.send(f"Congrats @{ctx.author.name}, you have won {bet} gems, and now have a total of {self.currentUser.returnPoints()} gems")
         if(gamba == 0):
-            currentUser.deductPoints(bet) 
-            await ctx.send(f"Unlucky @{ctx.author.name}, you have lost {bet} gems, and now have a total of {currentUser.returnPoints()} gems")
-        currentUser.save_user_data()
+            self.currentUser.deductPoints(bet) 
+            await ctx.send(f"Unlucky @{ctx.author.name}, you have lost {bet} gems, and now have a total of {self.currentUser.returnPoints()} gems")
+        self.currentUser.save_user_data()
 
     @commands.command(name='shutdown')
     async def shutdown(self, ctx):
         if((ctx.author.name.lower() == "1xelerate") or (ctx.author.is_mod)):
             await ctx.send("guess ill leave Sadge")
+            self.currentUser.save_user_data()
             sys.exit()
         else:
             await ctx.send(f"@{ctx.author.name} does not have permission to control me LULW")
     
     @commands.command(name='favorite')
     async def favorite(self, ctx, optional_user=None):
-        currentUser = User(ctx.author.name.lower()) 
+        self.currentUser.changeUser(ctx.author.name.lower()) 
         if(optional_user != None):
             if("@" in optional_user):
                 optional_user = optional_user[1:]
             try:
                 if(optional_user == "chat"):
                     syncGlobalChatData()
-                    currentUser = User("$CHAT_GENERAL")
+                    self.currentUser.changeUser("$CHAT_GENERAL")
                 else:
-                    currentUser = User(optional_user.lower())
+                    self.currentUser.changeUser(optional_user.lower())
             except:
                 await ctx.send("I don't know that user :(") 
                 return
-        await ctx.send(currentUser.favoriteEmote())
+        await ctx.send(self.currentUser.favoriteEmote())
 
     @commands.command(name='leaderboard')
     async def leaderboard(self, ctx):
@@ -148,16 +151,16 @@ class Bot(commands.Bot):
 
     @commands.command(name='gems')
     async def gems(self, ctx, optional_user=None):
-        currentUser = User(ctx.author.name.lower()) 
+        self.currentUser.changeUser(ctx.author.name.lower()) 
         if(optional_user != None):
             if("@" in optional_user):
                 optional_user = optional_user[1:]
             try:
-                currentUser = User(optional_user.lower())
+                self.currentUser.changeUser(optional_user.lower())
             except:
                 await ctx.send("I don't know that user :(") 
                 return
-        await ctx.send(f"@{currentUser.username} has {currentUser.returnPoints()} gems")
+        await ctx.send(f"@{self.currentUser.username} has {self.currentUser.returnPoints()} gems")
 
     @commands.command(name='weebs')
     async def weebs(self, ctx):
