@@ -39,13 +39,10 @@ class Bot(commands.Bot):
                 self.trivia_round = False
 
         emote_gen = (emote for emote in global_emotes if emote in (ctx.content).split())
-        emotes_used = [{emote:(ctx.content).count(emote)} for emote in emote_gen]
-        if(len(emotes_used) != 0):
-            for i in range(len(emotes_used)):
-                for emote in emotes_used[i]:
-                    currentUser = User(ctx.author.name.lower())
-                    currentUser.logEmote(emote, emotes_used[i][emote])
-                    currentUser.save_user_data()
+        for emote in emote_gen:
+            currentUser = User(ctx.author.name.lower())
+            currentUser.logEmote(emote, (ctx.content).count(emote))
+            currentUser.save_user_data()
         await self.handle_commands(ctx)
 
     @commands.command(name='ecount')
