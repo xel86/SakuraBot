@@ -1,26 +1,28 @@
 import json
 import operator
 
+
 class User():
 
     def __init__(self, username):
-
+       
         f = open('userdata_master.json')
-        self.user_master = json.load(f)
+        user_master = json.load(f)
         f.close()
+        self.user_master = user_master 
+        self.username = username
+    
+    def changeUser(self, username):
         self.username = username
         if(not (self.username in self.user_master)):
             self.user_master[self.username] = {'points': 0, 'emotes': {}}
             self.points = 0
-        else:
-            if(self.username != "$CHAT_GENERAL"):
-                self.points = self.user_master[self.username]['points']
-    
+
     def addPoints(self, amount):
-        self.points += amount
+        self.user_master[self.username]['points'] += amount 
 
     def returnPoints(self):
-        return self.points
+        return self.user_master[self.username]['points'] 
 
     def logEmote(self, emote, amount):
         if(not 'emotes' in self.user_master[self.username]):
@@ -37,15 +39,14 @@ class User():
         return (f"@{self.username}'s most used emote is {sorted_emotes[0][0]} with {sorted_emotes[0][1]} uses!")
 
     def save_user_data(self):
-        self.user_master[self.username]['points'] = self.points
         with open('userdata_master.json', 'w') as f:
             json.dump(self.user_master, f)
 
     def deductPoints(self, amount):
-        self.points -= amount
+        self.user_master[self.username]['points'] -= amount 
 
     def sendPoints(self, amount, otheruser):
-        self.points -= amount
+        self.user_master[self.username]['points'] -= amount
         self.user_master[otheruser]['points'] += amount
 
 

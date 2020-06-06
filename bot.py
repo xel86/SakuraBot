@@ -17,8 +17,10 @@ class Bot(commands.Bot):
     trivia_round = None
     emote_parameter = None
     current_trivia_game = False
+    currentUser = User("USER_INTERACTION_PLACER")
     def __init__(self):
         super().__init__(irc_token=os.environ['TMI_TOKEN'], client_id=os.environ['CLIENT_ID'], nick=os.environ['BOT_NICK'], prefix=os.environ['BOT_PREFIX'], initial_channels=[os.environ['CHANNEL']])
+        self.currentUser = User("USER_INTERACTION_PLACER")
 
     async def event_ready(self):
         'Called once when the bot goes online.'
@@ -40,10 +42,14 @@ class Bot(commands.Bot):
 
         emote_gen = (emote for emote in global_emotes if emote in (ctx.content).split())
         for emote in emote_gen:
-            currentUser = User(ctx.author.name.lower())
-            currentUser.logEmote(emote, (ctx.content).count(emote))
-            currentUser.save_user_data()
+            self.currentUser.changeUser(ctx.author.name.lower())
+            self.currentUser.logEmote(emote, (ctx.content).count(emote))
         await self.handle_commands(ctx)
+
+        if(ctx.content == "$save_data"):
+            print("saved")  
+            self.currentUser.save_user_data()
+
 
     @commands.command(name='ecount')
     async def ecount(self, ctx, emote):
@@ -135,8 +141,8 @@ class Bot(commands.Bot):
     @commands.command(name='emotecount')
     async def emotecount(self, ctx, emote):
         try:
-            currentUser = User(ctx.author.name.lower())
-            await ctx.send(f"@{ctx.author.name} has used {emote} {currentUser.returnEmoteCount(emote) -1} times since my inception")
+            self.currentUser.changeUser(ctx.author.name.lower())
+            await ctx.send(f"@{ctx.author.name} has used {emote} {self.currentUser.returnEmoteCount(emote) -1} times since my inception")
         except:
             await ctx.send("Sorry, I either don't know that emote or your input is wrong, do $emotecount emotename")
 
