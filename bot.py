@@ -37,15 +37,15 @@ class Bot(commands.Bot):
                 currentUser.addPoints(25)
                 currentUser.save_user_data()
                 self.trivia_round = False
-        if(any((1 for _ in re.finditer(r'\b%s\b' % re.escape(emote), ctx.content)) for emote in global_emotes)):
-            for find in global_emotes:
-                if(find in ctx.content):
-                    times_in_message = (ctx.content).count(find)
-                    currentUser = User(ctx.author.name.lower())
-                    currentUser.logEmote(find,times_in_message)                    
-                    currentUser.save_user_data()
-                    break
 
+        emote_gen = (emote for emote in global_emotes if emote in (ctx.content).split())
+        emotes_used = [{emote:(ctx.content).count(emote)} for emote in emote_gen]
+        if(len(emotes_used) != 0):
+            for i in range(len(emotes_used)):
+                for emote in emotes_used[i]:
+                    currentUser = User(ctx.author.name.lower())
+                    currentUser.logEmote(emote, emotes_used[i][emote])
+                    currentUser.save_user_data()
         await self.handle_commands(ctx)
 
     @commands.command(name='ecount')
